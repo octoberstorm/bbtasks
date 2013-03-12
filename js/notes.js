@@ -23,7 +23,7 @@ addToNoteList = function(id, title){
 //  note.attr("data-id", id);
   note.addClass("ui-btn ui-btn-icon-right ui-li ui-li-has-alt ui-first-child ui-btn-up-d");
   note.html(
-    "<div class='ui-btn-inner ui-li ui-li-has-alt'> <div class='ui-btn-text'>  <a data-id='" + id + "' class='ui-link-inherit'>" + title + "</a></div></div>");
+    "<div class='ui-btn-inner ui-li ui-li-has-alt'> <div class='ui-btn-text'>  <a data-id='" + id + "' class='ui-link-inherit'>" + title + "</a></div></div><a class='delete ui-li-link-alt ui-btn ui-btn-icon-notext ui-btn-up-d'>Delete</a>");
   $("#notes").append(note);
 }
 
@@ -33,7 +33,10 @@ fetchNotes = function(){
     tx.executeSql("SELECT id, title FROM notes", [], function(tx, result){
       for(var i = 0; i < result.rows.length; i++){
         row = result.rows.item(i);
-        addToNoteList(row['id'], row['title']);
+//        addToNoteList(row['id'], row['title']);
+        
+        var note = { id: row['id'], title: row['title'], content: row['content'] };
+        notes.push(note);
       }
     }, 
     function(tx, error) { sendMessage(error.message); }
@@ -75,7 +78,7 @@ deleteNote = function(id){
   db.transaction(function(tx){
     tx.executeSql("DELETE FROM notes WHERE id = ?", [id],
       function(tx, result){ 
-        $("#notes li[data-id=" + id + "]").remove(); 
+        $("#notes li a[data-id=" + id + "]").parents("li").remove(); 
         sendMessage("One note get deleted!"); 
       },
       function(tx, error){ sendMessage(error.message); }

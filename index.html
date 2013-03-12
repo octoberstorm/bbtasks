@@ -6,22 +6,18 @@
   <link rel="stylesheet" href="css/style.css">
   <script type="text/javascript" charset="utf-8"src="js/jquery1.8.3.js" ></script>
   <script type="text/javascript" charset="utf-8"src="js/jquerymobile.js" ></script>
+  <script type="text/javascript" charset="utf-8" src="js/underscore-min.js" ></script>
+  <script type="text/javascript">
+    var notes = new Array();
+  </script>
   <script type="text/javascript" charset="utf-8" src="js/notes.js" ></script>
 </head>
 
 <body>
   <div data-role="page" data-theme="b" data-title="My Notes">
-    <div data-role="header" data-theme="b"><h1>My Notes</h1></div>
+    <div data-role="header" data-theme="b" class="ui-header-fixed"><h1>My Notes</h1></div>
 
-    <div data-role="content" class="ui-content">
-
-<!--      <section id="sidebar">
-        <input type="button" id="new_button" value="New note">
-        <ul id="notes"></ul>
-      </section>
--->
-      <ul class="ui-listview" id="notes">
-      </ul> 
+    <div data-role="content" class="ui-content" id="main_content">
       <section id="main">
         <div id="message" style="display: none"></div>
         <form>
@@ -44,5 +40,29 @@
     </div><!-- End content -->
   </div>
 
+  <script id="notes-tpl" type="text/template">
+   <ul class="ui-listview" id="notes">
+   <% _.each(rc.notes, function(note){ %>
+     <li>
+        <div class='ui-btn-inner ui-li ui-li-has-alt'> 
+          <div class='ui-btn-text'>
+            <a data-id=""><%- note.title %></a>
+          </div>
+        </div>
+        <a class='delete ui-li-link-alt ui-btn ui-btn-icon-notext ui-btn-up-d'>Delete</a>
+      </li>
+    <% }); %>
+   </ul>
+  </script>
+
+  <script type="text/javascript">
+   _.templateSettings.variable = "rc";
+   // Grab the HTML out of our template tag and pre-compile it.
+   var template = _.template($( "#notes-tpl" ).html() );
+
+  var templateData = { notes: notes };
+
+   $("#main_content").prepend(template(templateData));
+  </script>
 </body>
 </html>
