@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <title>AwesomeNotes</title>
+  <link rel="stylesheet" href="css/jquery.mobile-1.3.0.min.css" />
+  <link rel="stylesheet" href="css/style.css">
+  <script type="text/javascript" charset="utf-8"src="js/jquery1.8.3.js" ></script>
+  <script type="text/javascript" charset="utf-8"src="js/jquerymobile.js" ></script>
+  <script type="text/javascript" charset="utf-8" src="js/notes.js" ></script>
+</head>
+
+<body>
+  <div data-role="page" data-theme="b" data-title="My Notes">
+    <div data-role="header" data-theme="b"><h1>My Notes</h1></div>
+
+    <div data-role="content" class="ui-content">
+
+<!--      <section id="sidebar">
+        <input type="button" id="new_button" value="New note">
+        <ul id="notes"></ul>
+      </section>
+-->
+      <ul class="ui-listview" id="notes">
+      </ul> 
+      <section id="main">
+        <div id="message" style="display: none"></div>
+        <form>
+          <ol>
+            <li>
+              <input type="submit" id="save_button" value="Save">
+              <input type="submit" id="delete_button" value="Delete">
+            </li>
+            <li>
+              <label for="title">Title</label>
+              <input type="text" id="title">
+            </li>
+            <li>
+              <label for="content">Note</label>
+              <textarea id="content"></textarea>
+            </li>
+          </ol>
+        </form>
+      </section>
+    </div><!-- End content -->
+  </div>
+
+</body>
+</html>
