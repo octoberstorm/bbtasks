@@ -1,68 +1,163 @@
-<!doctype html>
 <html>
-<head>
-  <title>AwesomeNotes</title>
-  <link rel="stylesheet" href="css/jquery.mobile-1.3.0.min.css" />
-  <link rel="stylesheet" href="css/style.css">
-  <script type="text/javascript" charset="utf-8"src="js/jquery1.8.3.js" ></script>
-  <script type="text/javascript" charset="utf-8"src="js/jquerymobile.js" ></script>
-  <script type="text/javascript" charset="utf-8" src="js/underscore-min.js" ></script>
-  <script type="text/javascript">
-    var notes = new Array();
-  </script>
-  <script type="text/javascript" charset="utf-8" src="js/notes.js" ></script>
-</head>
+	<head>
+    <title>Todos</title>
 
-<body>
-  <div data-role="page" data-theme="b" data-title="My Notes">
-    <div data-role="header" data-theme="b" class="ui-header-fixed"><h1>My Notes</h1></div>
+    <script type="text/javascript">
+    var $ = function(elem){
+      return document.getElementById(elem);
+    };
+    var App = {
+      db: null,
+      tasks: [],
+      html: {
+        container: $("task_list"),
+        appendTask: function(id, content, done){
+          done = done || false;
+          var elem = document.createElement("li");
+          html_id = "task_" + id;
+          elem.id = html_id;
+          elem.className = "task-item";
 
-    <div data-role="content" class="ui-content" id="main_content">
-      <section id="main">
-        <div id="message" style="display: none"></div>
-        <form>
-          <ol>
-            <li>
-              <input type="submit" id="save_button" value="Save">
-              <input type="submit" id="delete_button" value="Delete">
-            </li>
-            <li>
-              <label for="title">Title</label>
-              <input type="text" id="title">
-            </li>
-            <li>
-              <label for="content">Note</label>
-              <textarea id="content"></textarea>
-            </li>
-          </ol>
-        </form>
-      </section>
-    </div><!-- End content -->
-  </div>
+          var chk = document.createElement("input");
+          chk.type = "checkbox";
+          chk.id = id;
+          
+          chk.onclick = function(){ App.toggleTask(this)};
+          elem.appendChild(chk);
 
-  <script id="notes-tpl" type="text/template">
-   <ul class="ui-listview" id="notes">
-   <% _.each(rc.notes, function(note){ %>
-     <li>
-        <div class='ui-btn-inner ui-li ui-li-has-alt'> 
-          <div class='ui-btn-text'>
-            <a data-id=""><%- note.title %></a>
-          </div>
-        </div>
-        <a class='delete ui-li-link-alt ui-btn ui-btn-icon-notext ui-btn-up-d'>Delete</a>
-      </li>
-    <% }); %>
-   </ul>
-  </script>
+          var lbl = document.createElement("label");
+          lbl.innerHTML = content;
+          lbl.htmlFor = id;
+          elem.appendChild(lbl);
 
-  <script type="text/javascript">
-   _.templateSettings.variable = "rc";
-   // Grab the HTML out of our template tag and pre-compile it.
-   var template = _.template($( "#notes-tpl" ).html() );
+          if(done == 'true'){
+            elem.style.textDecoration = 'line-through';
+            chk.checked = true;
+          }
 
-  var templateData = { notes: notes };
+          $("task_list").appendChild(elem);
+        },
+        getTask: function(){
+          var id = $("task_id").value;
+          var content = $("task_content").value;
+          return {id: id, content: content}
 
-   $("#main_content").prepend(template(templateData));
-  </script>
-</body>
+        },
+        clearNewTask: function(){
+          $("task_id").value = "";
+          $("task_content").value = "";
+          $("btn_new_task").innerHTML = "Create task";
+        },
+        editTask: function(id, content){
+          $("task_id").value = id;
+          $("task_content").value = content;
+          $("btn_new_task").innerHTML = "Save";
+        },
+        updateTask: function(task){
+          document.querySelector("li#task_" + task.id).innerHTML = task.content;
+        },
+        toggleTask: function(id, done){
+          elem = $("task_" + id);
+          if(done == true){
+            elem.style.textDecoration = "line-through";
+          }
+          else{
+            elem.style.textDecoration = "none";
+          }
+        },
+        loadAllTasks: function(tasks){
+          for(var i = 0; i < tasks.rows.length; i++){
+            var task = tasks.rows.item(i);
+
+            this.appendTask(task['id'], task['content'], task['done']);
+
+
+          }
+        },
+      },
+      init: function(){
+        this.db = window.openDatabase("tasks", "1.0", "Notes db", 5*1024*1024);
+        //set update database
+        this.db.transaction(function(tx){
+          tx.executeSql("CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, content TEXT, done BOOLEAN DEFAULT false)", [], 
+              function(){ console.log("db initialized ok")}, 
+              function(tx, error){ alert(error.message) }
+            );
+          //tx.executeSql("delete from tasks");
+        });
+        this.loadTasks();
+
+        //btn_new_task.addEventListener("click", this.newTask(), false);
+      },
+
+      newTask: function(){
+        var html = this.html;
+        this.db.transaction(function(tx){
+          var task = html.getTask();
+          tx.executeSql("Insert into tasks(content) VALUES(?)", [task.content], 
+            function(tx, result){  html.appendTask(result.insertId, task.content); html.clearNewTask()}, 
+            function(tx, error){ alert(error.message) })
+        });
+      },
+      saveTask: function(){
+        var html = this.html;
+        this.db.transaction(function(tx){
+          var task = html.getTask();
+          tx.executeSql("update tasks set content = ? where id = ?", [task.content, task.id], function(tx, result){ html.updateTask(task)}, function(tx, error){ alert(error.message)});
+        })
+      },
+      
+      // toggle task
+      toggleTask: function(chk){
+        id = chk.id;
+        var html = this.html;
+        this.db.transaction(function(tx){
+          tx.executeSql("select id, done from tasks where id = ?", [id], 
+            function(tx, result){ 
+              task = result.rows.item(0);
+              done = task.done != "true" ? true : false;
+              tx.executeSql("update tasks set done = ? where id = ?", [done, id], function(tx, result){ html.toggleTask(id, done)}, function(tx, error){ alert(error.message) });
+            }, 
+            function(tx, error){ alert(error.message) }
+          );
+        });
+      },
+
+      // load tasks
+      loadTasks: function(){
+        html = this.html;
+        this.db.transaction(function(tx){
+          tx.executeSql("SELECT * from tasks", [], function(tx, result){ html.loadAllTasks(result)}, function(tx, error){ alert(error.message) });
+        });
+      }
+
+    };
+
+    window.onload = function(){
+      App.init();
+      // add events
+      btn_new_task = $("btn_new_task");
+//      btn_new_task.onclick = App.newTask();
+    }
+    </script>
+    <style type="text/css">
+    body{
+      width: 980px;
+      margin: 0 auto;
+    }
+    </style>
+  </head>
+	<body>
+    <div id="main_content">
+      <div id="task_form">
+        <input type="hidden" id="task_id" />
+        <textarea id="task_content" name="" rows="4" cols="30"></textarea>
+        <button id="btn_new_task" onclick="App.newTask()">Create task</button>
+      </div>
+
+    <hr />
+    <h2>Task list</h2>
+    <ul id="task_list"></ul>
+    </div>
+  </body>
 </html>
