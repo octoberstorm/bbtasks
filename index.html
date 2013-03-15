@@ -11,35 +11,59 @@
       tasks: [],
       html: {
         container: $("task_list"),
-        appendTask: function(id, content, done){
-          done = done || false;
-          var elem = document.createElement("li");
+        renderTask: function(id, content, done, new_task){
+        
+          if (new_task === undefined){
+            new_task = true;
+          }
+
           html_id = "task_" + id;
+          done = done || false;
+
+          var elem = document.createElement("li");
           elem.id = html_id;
           elem.className = "task-item";
 
+          // checkbox for toggle completion
           var chk = document.createElement("input");
           chk.type = "checkbox";
           chk.id = id;
           
           chk.onclick = function(){ App.toggleTask(this)};
           elem.appendChild(chk);
-
+          
+          // add a label to display task content
           var lbl = document.createElement("label");
           lbl.innerHTML = content;
           lbl.htmlFor = id;
           elem.appendChild(lbl);
 
           if(done == 'true'){
-            elem.style.textDecoration = 'line-through';
+            lbl.style.textDecoration = 'line-through';
             chk.checked = true;
           }
 
-          $("task_list").appendChild(elem);
+          // edit button
+          btn_edit = document.createElement("img");
+          btn_edit.src = "edit.gif";
+          btn_edit.className = "btn-edit";
+          btn_edit.onclick = function(){ 
+            App.html.editTask(this.parentNode.childNodes[0].id, this.parentNode.childNodes[1].innerHTML, this.parentNode.childNodes[0].checked); 
+          };
+          elem.appendChild(btn_edit);
+
+          if(new_task == true){
+            $("task_list").appendChild(elem);
+          }
+          else{
+            to_replace = $(html_id);
+            to_replace.parentNode.replaceChild(elem, to_replace);
+          }
         },
         getTask: function(){
           var id = $("task_id").value;
           var content = $("task_content").value;
+          var done = $("task_done").value;
           return {id: id, content: content}
 
         },
@@ -48,13 +72,16 @@
           $("task_content").value = "";
           $("btn_new_task").innerHTML = "Create task";
         },
-        editTask: function(id, content){
+        editTask: function(id, content, done){
           $("task_id").value = id;
           $("task_content").value = content;
+          $("task_done").value = done;
           $("btn_new_task").innerHTML = "Save";
+          $("btn_cancel_save").style.display = "inline-block";
         },
-        updateTask: function(task){
-          document.querySelector("li#task_" + task.id).innerHTML = task.content;
+        reloadTask: function(task){
+          this.renderTask(task.id, task.content, task.done, false);
+          //document.querySelector("li#task_" + task.id).innerHTML = task.content;
         },
         toggleTask: function(id, done){
           elem = $("task_" + id);
@@ -69,7 +96,7 @@
           for(var i = 0; i < tasks.rows.length; i++){
             var task = tasks.rows.item(i);
 
-            this.appendTask(task['id'], task['content'], task['done']);
+            this.renderTask(task['id'], task['content'], task['done']);
 
 
           }
@@ -90,20 +117,33 @@
         //btn_new_task.addEventListener("click", this.newTask(), false);
       },
 
+      // save task: new or update
+      saveTask: function(){
+        var task = html.getTask();
+        if(parseInt(task.id) > 0){
+          this.updateTask();
+        }
+        else{
+          this.newTask();
+        }
+      },
+
+      // new task
       newTask: function(){
         var html = this.html;
         this.db.transaction(function(tx){
           var task = html.getTask();
           tx.executeSql("Insert into tasks(content) VALUES(?)", [task.content], 
-            function(tx, result){  html.appendTask(result.insertId, task.content); html.clearNewTask()}, 
+            function(tx, result){  html.renderTask(result.insertId, task.content); html.clearNewTask()}, 
             function(tx, error){ alert(error.message) })
         });
       },
-      saveTask: function(){
+      // update a task
+      updateTask: function(){
         var html = this.html;
         this.db.transaction(function(tx){
           var task = html.getTask();
-          tx.executeSql("update tasks set content = ? where id = ?", [task.content, task.id], function(tx, result){ html.updateTask(task)}, function(tx, error){ alert(error.message)});
+          tx.executeSql("update tasks set content = ? where id = ?", [task.content, task.id], function(tx, result){ html.reloadTask(task)}, function(tx, error){ alert(error.message)});
         })
       },
       
@@ -135,9 +175,21 @@
 
     window.onload = function(){
       App.init();
-      // add events
-      btn_new_task = $("btn_new_task");
-//      btn_new_task.onclick = App.newTask();
+      task_content = $("task_content");
+      task_content.addEventListener('keyup', function(e){
+        if(e.keyCode == 13){
+         btn_new_task = $("btn_new_task");
+         btn_new_task.click();
+        }
+      });
+    }
+
+    toggleCancelButton = function(){
+      $("btn_cancel_save").style.display = "none";
+      $("btn_new_task").innerHTML = "Create task";
+      $("task_id").value = "";
+      $("task_done").value ="";
+      $("task_content").value = "";
     }
     </script>
     <style type="text/css">
@@ -145,14 +197,23 @@
       width: 980px;
       margin: 0 auto;
     }
+    ul#task_list{
+      list-style-image: url('list-item.gif');
+    }
+    img.btn-edit{
+      margin-left: 5px;
+      cursor: pointer;
+    }
     </style>
   </head>
 	<body>
     <div id="main_content">
       <div id="task_form">
         <input type="hidden" id="task_id" />
+        <input type="hidden" id="task_done" />
         <textarea id="task_content" name="" rows="4" cols="30"></textarea>
-        <button id="btn_new_task" onclick="App.newTask()">Create task</button>
+        <button id="btn_new_task" onclick="App.saveTask()">Create task</button>
+        <button id="btn_cancel_save" style="display:none" onclick="toggleCancelButton()">Cancel</button>
       </div>
 
     <hr />
